@@ -8,11 +8,12 @@ import (
 )
 
 func main() {
-	s := ldng.NewSpin(ldng.SpinPrefix("Processing"), ldng.SpinSuccess("\nSuccess!!\n"))
+	s := ldng.NewSpin(ldng.SpinPrefix("Processing"), ldng.SpinPeriod(100*time.Millisecond), ldng.SpinSuccess("Success!!\n"))
 
 	term.HideCursor()
-	s.Start()
-	time.Sleep(time.Second * 8)
-	s.Stop()
+	stop := s.Start()
+	time.Sleep(time.Second * 3)
+	stop <- struct{}{} // stop the spinner after 3 seconds
+	<-stop             // wait for the spinner to finish the stop task
 	term.ShowCursor()
 }
