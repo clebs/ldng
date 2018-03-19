@@ -1,6 +1,7 @@
 package ldng
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -10,10 +11,10 @@ import (
 // Spin represents a Spin bar in the term
 type Spin struct {
 	frames  []string
+	current int
 	period  time.Duration
 	prefix  string
 	success string
-	stop    chan struct{}
 }
 
 // NewSpin creates a new Spin
@@ -28,6 +29,7 @@ func NewSpin(opts ...func(*Spin)) *Spin {
 			"|",
 			"/",
 			"-",
+			"\\",
 		},
 		period: time.Second,
 	}
@@ -37,30 +39,43 @@ func NewSpin(opts ...func(*Spin)) *Spin {
 	return s
 }
 
-// Start the spinner
-func (s *Spin) Start() {
-	s.stop = make(chan struct{}, 0)
+func (s *Spin) frame() string {
+	s.current = (s.current + 1) % len(s.frames)
+	return s.frames[s.current]
+}
+
+func (s *Spin) String() string {
+	var b bytes.Buffer
+	if s.prefix != "" {
+		b.WriteString(fmt.Sprintf("%s ", s.prefix))
+	}
+	b.WriteString(fmt.Sprintf("%s", s.frame()))
+
+	return b.String()
+}
+
+// Start the spinner and return a channel to stop it.
+// Use the stop channel to stop the spinner.
+// Once it is stopped, the spinner will close the channel, so it can be used to wait for the spinner to finish.
+func (s *Spin) Start() (stop chan struct{}) {
+	stop = make(chan struct{}, 0)
 	go func() {
-		frame := 0
 		for {
 			select {
 			case <-time.After(s.period):
 				term.Clearln()
-				if s.prefix != "" {
-					fmt.Printf("%s ", s.prefix)
+				fmt.Print(s.String())
+			case <-stop:
+				if s.success != "" {
+					term.Clearln()
+					fmt.Print(s.success)
 				}
-				fmt.Printf("%s", s.frames[frame])
-				frame = (frame + 1) % len(s.frames)
-			case <-s.stop:
+				close(stop) // callers can receive on this channel to wait for the spinner to stop
 				return
 			}
 		}
 	}()
-}
-
-// Stop the spinner
-func (s *Spin) Stop() {
-	close(s.stop)
+	return
 }
 
 /* Options */

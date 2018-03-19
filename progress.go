@@ -1,6 +1,7 @@
 package ldng
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/clebs/ldng/term"
@@ -8,9 +9,10 @@ import (
 
 // Progress represents a progress bar in the term
 type Progress struct {
-	frames  []string
-	prefix  string
-	success string
+	frames     []string
+	completion int
+	prefix     string
+	success    string
 }
 
 // NewProgress creates a new Progress
@@ -37,24 +39,32 @@ func NewProgress(opts ...func(*Progress)) *Progress {
 	return p
 }
 
-func (p Progress) frame(percent int) string {
+func (p *Progress) frame(percent int) string {
 	normalized := percent * (len(p.frames) - 1) / 100
 	return p.frames[normalized]
 }
 
-// Update the completion percentage of the progress, triggering a rendition
-func (p Progress) Update(percent int) {
-	term.Clearln()
+// String returns a string representation of the progress bar in its current state
+func (p *Progress) String() string {
+	var b bytes.Buffer
 
 	if p.prefix != "" {
-		fmt.Printf("%s ", p.prefix)
+		b.WriteString(fmt.Sprintf("%s ", p.prefix))
 	}
 
-	fmt.Printf("%s", p.frame(percent))
+	b.WriteString(fmt.Sprintf("%s", p.frame(p.completion)))
 
-	if percent == 100 && p.success != "" {
-		fmt.Printf("%s", p.success)
+	if p.completion == 100 && p.success != "" {
+		b.WriteString(fmt.Sprintf("%s", p.success))
 	}
+	return b.String()
+}
+
+// Update the completion percentage of the progress, triggering a rendition
+func (p *Progress) Update(percent int) {
+	p.completion = percent
+	term.Clearln()
+	fmt.Print(p.String())
 }
 
 /* Options */
