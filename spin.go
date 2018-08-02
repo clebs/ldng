@@ -49,7 +49,7 @@ func (s *Spin) String() string {
 	if s.prefix != "" {
 		b.WriteString(fmt.Sprintf("%s ", s.prefix))
 	}
-	b.WriteString(fmt.Sprintf("%s", s.frame()))
+	b.WriteString(fmt.Sprintf("%s ", s.frame()))
 
 	return b.String()
 }
